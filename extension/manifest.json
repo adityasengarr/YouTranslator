@@ -1,0 +1,39 @@
+{
+    "manifest_version": 3,
+    "name": "YouTube Language Practice",
+    "version": "1.0",
+    "description": "Pause YouTube videos, translate segments, and practice pronouncing them",
+    "icons": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "permissions": [
+      "activeTab",
+      "storage"
+    ],
+    "host_permissions": [
+      "https://*.youtube.com/*"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["https://*.youtube.com/*"],
+        "js": ["content.js"],
+        "css": ["styles.css"]
+      }
+    ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }
+    },
+    "web_accessible_resources": [
+      {
+        "resources": ["images/*"],
+        "matches": ["https://*.youtube.com/*"]
+      }
+    ]
+  }

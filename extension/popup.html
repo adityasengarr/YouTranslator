@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YouTube Language Practice</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    select, button {
+      margin-bottom: 15px;
+      width: 100%;
+      padding: 8px;
+    }
+    
+    button {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #f8f8f8;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Language Practice</h1>
+  
+  <label for="language">Target Language:</label>
+  <select id="language">
+    <option value="es-ES">Spanish (Spain)</option>
+    <option value="es-MX">Spanish (Mexico)</option>
+    <option value="fr-FR">French</option>
+    <option value="de-DE">German</option>
+    <option value="it-IT">Italian</option>
+    <option value="pt-BR">Portuguese (Brazil)</option>
+    <option value="ja-JP">Japanese</option>
+    <option value="ko-KR">Korean</option>
+    <option value="zh-CN">Chinese (Mainland)</option>
+    <option value="ru-RU">Russian</option>
+  </select>
+  
+  <label for="interval">Pause Interval (seconds):</label>
+  <select id="interval">
+    <option value="30-60">30-60 (Default)</option>
+    <option value="10-30">10-30 (Faster)</option>
+    <option value="60-120">60-120 (Slower)</option>
+    <option value="5-15">5-15 (Testing Mode)</option>
+  </select>
+  
+  <button id="start-practice">Start Practice Mode</button>
+  <button id="stop-practice">Stop Practice Mode</button>
+  
+  <div class="status" id="status-message">
+    Extension is ready. Click "Start Practice Mode" to begin.
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

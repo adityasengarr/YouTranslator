@@ -1,0 +1,32 @@
+/* styles.css */
+#translator-overlay {
+    font-family: Arial, sans-serif;
+    z-index: 10000;
+  }
+  
+  #translator-overlay button {
+    transition: background-color 0.2s;
+    margin: 5px;
+    cursor: pointer;
+  }
+  
+  #translator-overlay button:hover {
+    opacity: 0.9;
+  }
+  
+  #translator-overlay button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .similarity-high {
+    color: #4CAF50;
+  }
+  
+  .similarity-medium {
+    color: #FFC107;
+  }
+  
+  .similarity-low {
+    color: #f44336;
+  }
