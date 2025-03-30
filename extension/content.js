@@ -6,6 +6,9 @@ console.log("YouTube Translator Extension loaded.");
 // --------------------------
 const BACKEND_URL = 'http://localhost:3000/api'; // Change this to your deployed backend URL
 const DEFAULT_TARGET_LANGUAGE = 'es-ES'; // Default target language (Spanish)
+const MIN_PAUSE_INTERVAL = 25; // Minimum seconds between pauses
+const MAX_PAUSE_INTERVAL = 35; // Maximum seconds between pauses
+const IS_TESTING = false; // Set to true for faster pauses during testing
 
 // --------------------------
 // Helper Functions
@@ -60,7 +63,7 @@ function speakText(text, lang = DEFAULT_TARGET_LANGUAGE) {
 }
 
 // Create and display an overlay with the translated text and control buttons
-function createOverlay(originalText, translatedText, targetLang) {
+function createOverlay(originalText, translatedText, targetLang, onResume) {
   const overlay = document.createElement('div');
   overlay.id = 'translator-overlay';
   overlay.style.position = 'fixed';
@@ -144,6 +147,11 @@ function createOverlay(originalText, translatedText, targetLang) {
     if (video) {
       video.play();
       console.log("Video resumed.");
+      
+      // Call the onResume callback to schedule the next pause
+      if (typeof onResume === 'function') {
+        onResume();
+      }
     }
   };
   content.appendChild(resumeBtn);
@@ -206,17 +214,6 @@ function createOverlay(originalText, translatedText, targetLang) {
   }
 }
 
-// Pause the video at a specific timestamp
-function pauseVideoAtTime(video, targetTimeInSeconds) {
-  const checkInterval = setInterval(() => {
-    if (video.currentTime >= targetTimeInSeconds) {
-      video.pause();
-      clearInterval(checkInterval);
-      console.log(`Video paused at ${video.currentTime.toFixed(2)}s`);
-    }
-  }, 100); // Check every 200ms
-}
-
 // --------------------------
 // Main Logic
 // --------------------------
@@ -239,61 +236,117 @@ function initTranslator() {
   
   console.log(`Found video ID: ${videoId}`);
   
-  // Set a random delay (between 30 and 60 seconds)
-  const randomDelay = Math.floor(Math.random() * 30 + 30) * 1000;
+  // Variable to track if we're currently paused for translation
+  let isPaused = false;
   
-  // For testing, use a shorter delay:
-  // const randomDelay = Math.floor(Math.random() * 10 + 5) * 1000;
-  
-  console.log(`Will pause video in ${randomDelay/1000} seconds`);
+  // Function to schedule the next pause
+  function scheduleNextPause() {
+    if (isPaused) return; // Don't schedule if we're already paused
+    
+    // Determine the delay range based on whether we're testing or not
+    let minDelay, maxDelay;
+    if (IS_TESTING) {
+      minDelay = 5; // 5 seconds minimum for testing
+      maxDelay = 15; // 15 seconds maximum for testing
+    } else {
+      minDelay = MIN_PAUSE_INTERVAL;
+      maxDelay = MAX_PAUSE_INTERVAL;
+    }
+    
+    // Calculate a random delay within the range
+    const delaySeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1) + minDelay);
+    const randomDelay = delaySeconds * 1000;
+    
+    console.log(`Will pause video in ${delaySeconds} seconds`);
 
-  // Wait for the random delay, then pause the video and show the translation
-  setTimeout(() => {
-    // Remember current timestamp
-    const currentTime = video.currentTime;
-    
-    // Pause the video
-    video.pause();
-    console.log(`Video paused at ${currentTime.toFixed(2)}s`);
-    
-    // Fetch a random transcript segment from our backend
-    fetch(`${BACKEND_URL}/random-segment/${videoId}?targetLang=${DEFAULT_TARGET_LANGUAGE.substring(0, 2)}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const originalText = data.originalSegment.text;
-          const translatedText = data.translatedText;
+    // Set a timeout to pause the video after the random delay
+    setTimeout(() => {
+      // Check if the video is still playing
+      if (video.paused || isPaused) return;
+      
+      // Remember current timestamp and pause the video
+      const currentTime = video.currentTime;
+      video.pause();
+      isPaused = true;
+      
+      console.log(`Video paused at ${currentTime.toFixed(2)}s`);
+      
+      // Fetch a random transcript segment from our backend
+      fetch(`${BACKEND_URL}/random-segment/${videoId}?targetLang=${DEFAULT_TARGET_LANGUAGE.substring(0, 2)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const originalText = data.originalSegment.text;
+            const translatedText = data.translatedText;
+            
+            console.log("Original text:", originalText);
+            console.log("Translated text:", translatedText);
+            
+            // Speak the translated text
+            speakText(translatedText, DEFAULT_TARGET_LANGUAGE);
+            
+            // Create and show the overlay with a callback for when the video resumes
+            createOverlay(originalText, translatedText, DEFAULT_TARGET_LANGUAGE, () => {
+              isPaused = false;
+              scheduleNextPause(); // Schedule the next pause when the video resumes
+            });
+          } else {
+            console.error("Error fetching transcript segment:", data.message);
+            
+            // Fallback to a dummy translation if there's an error
+            const dummyOriginal = "This is a fallback transcript segment.";
+            const dummyTranslated = "Este es un segmento de transcripción de respaldo.";
+            
+            speakText(dummyTranslated, DEFAULT_TARGET_LANGUAGE);
+            createOverlay(dummyOriginal, dummyTranslated, DEFAULT_TARGET_LANGUAGE, () => {
+              isPaused = false;
+              scheduleNextPause(); // Schedule the next pause when the video resumes
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Fetch error:", error);
           
-          console.log("Original text:", originalText);
-          console.log("Translated text:", translatedText);
-          
-          // Speak the translated text
-          speakText(translatedText, DEFAULT_TARGET_LANGUAGE);
-          
-          // Create and show the overlay
-          createOverlay(originalText, translatedText, DEFAULT_TARGET_LANGUAGE);
-        } else {
-          console.error("Error fetching transcript segment:", data.message);
-          
-          // Fallback to a dummy translation if there's an error
+          // Fallback to a dummy translation
           const dummyOriginal = "This is a fallback transcript segment.";
           const dummyTranslated = "Este es un segmento de transcripción de respaldo.";
           
           speakText(dummyTranslated, DEFAULT_TARGET_LANGUAGE);
-          createOverlay(dummyOriginal, dummyTranslated, DEFAULT_TARGET_LANGUAGE);
-        }
-      })
-      .catch(error => {
-        console.error("Fetch error:", error);
-        
-        // Fallback to a dummy translation
-        const dummyOriginal = "This is a fallback transcript segment.";
-        const dummyTranslated = "Este es un segmento de transcripción de respaldo.";
-        
-        speakText(dummyTranslated, DEFAULT_TARGET_LANGUAGE);
-        createOverlay(dummyOriginal, dummyTranslated, DEFAULT_TARGET_LANGUAGE);
-      });
-  }, randomDelay);
+          createOverlay(dummyOriginal, dummyTranslated, DEFAULT_TARGET_LANGUAGE, () => {
+            isPaused = false;
+            scheduleNextPause(); // Schedule the next pause when the video resumes
+          });
+        });
+    }, randomDelay);
+  }
+  
+  // Start the first pause cycle
+  scheduleNextPause();
+  
+  // Add event listener for when the video ends
+  video.addEventListener('ended', () => {
+    isPaused = true; // Prevent further pauses
+    console.log("Video has ended, stopping translator.");
+  });
+  
+  // Add event listener for when the video is manually paused
+  video.addEventListener('pause', () => {
+    // Only set isPaused if it wasn't our extension that paused it
+    if (!isPaused) {
+      isPaused = true;
+      console.log("Video was manually paused, pausing translator.");
+    }
+  });
+  
+  // Add event listener for when the video is manually played
+  video.addEventListener('play', () => {
+    // If it was manually paused before, restart the scheduler
+    if (isPaused) {
+      isPaused = false;
+      console.log("Video was manually resumed, restarting translator.");
+      scheduleNextPause();
+    }
+  });
 }
 
 // Start the translator after the page has loaded
